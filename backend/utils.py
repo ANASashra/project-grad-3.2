@@ -20,6 +20,7 @@ class Colors:
 
 # إموجيات للعرض
 EMOJI = {
+    'danger': '🚨',
     'ok': '✅',
     'fail': '❌',
     'info': 'ℹ️',

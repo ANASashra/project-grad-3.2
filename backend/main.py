@@ -15,7 +15,7 @@ from network_scan import run_nmap_scan
 from subdomain_scanner import run_subfinder, check_subdomains_parallel
 from dns_records import get_dns_records
 from whois_info import get_whois_info
-from vulnerability_scanner import smart_vuln_scan, get_user_mode, check_nuclei_template_paths
+from vulnerability_scanner import run_nuclei_scan, run_xsstrike_scan, run_sqlmap_scan, run_nikto_scan, run_wpscan, get_user_mode, check_nuclei_template_paths
 
 def main():
     """واجهة تفاعلية موحدة لكل الوظائف"""
@@ -29,13 +29,16 @@ def main():
     start_time = time.time()
     while True:
         print("\n" + Colors.BOLD + Colors.BLUE + "اختر العملية التي تريد تنفيذها:" + Colors.END)
-        print(" 1. فحص الشبكة الداخلية (nmap)")
-        print(" 2. جمع النطاقات الفرعية (subfinder)")
+        print(" 1. فحص الشبكة الداخلية ")
+        print(" 2. جمع النطاقات الفرعية ")
         print(" 3. فحص حالة النطاقات الفرعية (HTTP/HTTPS/SSL)")
         print(" 4. جمع سجلات DNS")
         print(" 5. معلومات WHOIS")
-        print(" 6. التحقق من مسارات قوالب Nuclei")
-        print(" 7. الفحص الأمني الذكي (Nuclei/XSStrike/SQLmap/Nikto/WPScan)")
+        print(" 6. فحص ثغرات Nuclei")
+        print(" 7. فحص XSS  ")
+        print(" 8. فحص SQLi  ")
+        print(" 9. فحص Nikto")
+        print("10. فحص WordPress  ")
         print(" 0. خروج")
         choice = input("\nأدخل رقم الخيار: ").strip()
         if choice == '1':
@@ -68,17 +71,53 @@ def main():
         elif choice == '5':
             get_whois_info(domain)
         elif choice == '6':
-            check_nuclei_template_paths()
+            while True:
+                print("\nخيارات فحص Nuclei:")
+                print(" 1. فحص جميع الثغرات (شامل)")
+                print(" 2. فحص XSS فقط (سريع)")
+                print(" 3. فحص SQLi فقط (سريع)")
+                print(" 4. فحص LFI فقط (سريع)")
+                print(" 5. فحص RCE فقط (سريع)")
+                print(" 6. فحص حسب شدة معينة")
+                print(" 0. رجوع")
+                nuclei_choice = input("\nأدخل رقم خيار فحص Nuclei: ").strip()
+                if nuclei_choice == '1':
+                    run_nuclei_scan(target_domain, mode='all')
+                elif nuclei_choice == '2':
+                    run_nuclei_scan(target_domain, mode='xss')
+                elif nuclei_choice == '3':
+                    run_nuclei_scan(target_domain, mode='sqli')
+                elif nuclei_choice == '4':
+                    run_nuclei_scan(target_domain, mode='lfi')
+                elif nuclei_choice == '5':
+                    run_nuclei_scan(target_domain, mode='rce')
+                elif nuclei_choice == '6':
+                    sev = input("أدخل الشدة المطلوبة (low,medium,high,critical): ").strip()
+                    run_nuclei_scan(target_domain, mode='severity', severity=sev)
+                elif nuclei_choice == '0':
+                    break
+                else:
+                    print(EMOJI['warning'] + " خيار غير صحيح!" + Colors.END)
+
         elif choice == '7':
-            is_wp = input("هل الموقع WordPress؟ (y/n): ").strip().lower() in ['y', 'yes', 'نعم']
-            fast_mode = get_user_mode()
-            smart_vuln_scan(target_domain, is_wordpress=is_wp, fast_mode=fast_mode)
+            run_xsstrike_scan(target_domain)
+        elif choice == '8':
+            run_sqlmap_scan(target_domain)
+        elif choice == '9':
+            run_nikto_scan(target_domain)
+        elif choice == '10':
+            run_wpscan(target_domain)
         elif choice == '0':
             break
         else:
             print(EMOJI['fail'] + Colors.RED + " خيار غير صحيح!" + Colors.END)
     elapsed_time = time.time() - start_time
-    print("\n" + EMOJI['clock'] + " " + Colors.GREEN + "اكتمل الفحص في " + str(int(elapsed_time)) + " ثانية" + Colors.END)
+    if elapsed_time >= 60:
+        mins = int(elapsed_time // 60)
+        secs = int(elapsed_time % 60)
+        print("\n" + EMOJI['clock'] + " " + Colors.GREEN + f"اكتمل الفحص في {mins} دقيقة" + (f" و {secs} ثانية" if secs else "") + Colors.END)
+    else:
+        print("\n" + EMOJI['clock'] + " " + Colors.GREEN + f"اكتمل الفحص في {int(elapsed_time)} ثانية" + Colors.END)
 
 
 if __name__ == "__main__":
